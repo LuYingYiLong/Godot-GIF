@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="Godot-GIF.vcxproj" />
+  <Project Path="Godot-GIF.vcxproj" Id="d52d07a1-0bf0-47fa-a5af-7223a45f70f7" />
 </Solution>
