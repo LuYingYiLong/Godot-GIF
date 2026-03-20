@@ -9,24 +9,60 @@
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
+    <Filter Include="Header Files\core">
+      <UniqueIdentifier>{7129619a-ba1b-4f70-9980-14157659a67c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\core">
+      <UniqueIdentifier>{666a1885-9590-4502-b863-e4e0ff2ce621}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\editor">
+      <UniqueIdentifier>{780e8f25-0fe7-44ac-9299-923e3f8e7ceb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\editor">
+      <UniqueIdentifier>{5c23bb8a-bf46-4b8e-ba66-d746722f3fee}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\node">
+      <UniqueIdentifier>{f0259714-a666-473a-a807-cdfefb0a9cac}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\node">
+      <UniqueIdentifier>{2a1b5024-8a7d-4583-83bc-7c31232fd330}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\register_types.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\core\register_types.h">
+      <Filter>Header Files\core</Filter>
     </ClInclude>
-    <ClInclude Include="src\gif_reader.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\core\gif_reader.h">
+      <Filter>Header Files\core</Filter>
     </ClInclude>
-    <ClInclude Include="src\gif_utils.hpp">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="src\core\gif_utils.hpp">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\gif_texture.h">
+      <Filter>Header Files\core</Filter>
+    </ClInclude>
+    <ClInclude Include="src\editor\resource_importer_gif_texture.h">
+      <Filter>Header Files\editor</Filter>
+    </ClInclude>
+    <ClInclude Include="src\node\gif_player.h">
+      <Filter>Header Files\node</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\register_types.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\core\register_types.cpp">
+      <Filter>Source Files\core</Filter>
     </ClCompile>
-    <ClCompile Include="src\gif_reader.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\core\gif_reader.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\core\gif_texture.cpp">
+      <Filter>Source Files\core</Filter>
+    </ClCompile>
+    <ClCompile Include="src\editor\resource_importer_gif_texture.cpp">
+      <Filter>Source Files\editor</Filter>
+    </ClCompile>
+    <ClCompile Include="src\node\gif_player.cpp">
+      <Filter>Source Files\node</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

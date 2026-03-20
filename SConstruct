@@ -16,7 +16,8 @@ env = SConscript("godot-cpp/SConstruct")
 env.Append(CPPPATH=["src/", "src/thirdparty/giflib-5.2.2/"])
 
 # Collect C++ sources
-sources = Glob("src/*.cpp")
+sources = Glob("src/*.cpp") + Glob("src/core/*.cpp") + Glob("src/editor/*.cpp") + \
+          Glob("src/node/*.cpp")
 
 # Collect giflib C sources (只包含核心库文件，不包含工具程序)
 giflib_sources = [

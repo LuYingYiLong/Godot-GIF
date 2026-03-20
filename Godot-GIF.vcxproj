@@ -18,6 +18,21 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\core\gif_reader.h" />
+    <ClInclude Include="src\core\gif_texture.h" />
+    <ClInclude Include="src\core\gif_utils.hpp" />
+    <ClInclude Include="src\core\register_types.h" />
+    <ClInclude Include="src\editor\resource_importer_gif_texture.h" />
+    <ClInclude Include="src\node\gif_player.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\core\gif_reader.cpp" />
+    <ClCompile Include="src\core\gif_texture.cpp" />
+    <ClCompile Include="src\core\register_types.cpp" />
+    <ClCompile Include="src\editor\resource_importer_gif_texture.cpp" />
+    <ClCompile Include="src\node\gif_player.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -132,15 +147,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClInclude Include="src\gif_reader.h" />
-    <ClInclude Include="src\gif_utils.hpp" />
-    <ClInclude Include="src\register_types.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\gif_reader.cpp" />
-    <ClCompile Include="src\register_types.cpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

@@ -7,3 +7,7 @@ reloadable = true
 [libraries]
 
 windows.debug.x86_64 = "godot_gif.windows.template_debug.x86_64.dll"
+
+[icons]
+
+GIFTexture = "icons/GIFTexture.svg"

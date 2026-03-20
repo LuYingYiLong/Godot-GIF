@@ -1,6 +1,9 @@
 #include "register_types.h"
 
 #include "gif_reader.h"
+#include "gif_texture.h"
+#include "../editor/resource_importer_gif_texture.h"
+#include "../node/gif_player.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
@@ -9,11 +12,18 @@
 using namespace godot;
 
 void initialize_godot_gif_module(ModuleInitializationLevel p_level) {
+	if (p_level == MODULE_INITIALIZATION_LEVEL_EDITOR) {
+		GDREGISTER_CLASS(ResourceImporterGIFTexture);
+		return;
+	}
+
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
 		return;
 	}
 
 	GDREGISTER_CLASS(GIFReader);
+	GDREGISTER_CLASS(GIFTexture);
+	GDREGISTER_CLASS(GIFPlayer);
 }
 
 void uninitialize_godot_gif_module(ModuleInitializationLevel p_level) {
@@ -29,7 +39,7 @@ extern "C" {
 
 		init_obj.register_initializer(initialize_godot_gif_module);
 		init_obj.register_terminator(uninitialize_godot_gif_module);
-		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_SCENE);
+		init_obj.set_minimum_library_initialization_level(MODULE_INITIALIZATION_LEVEL_EDITOR);
 
 		return init_obj.init();
 	}
