@@ -156,15 +156,15 @@ namespace godot {
 				float delta = get_process_delta_time();
 				time_accumulator += delta * speed_scale;
 
-				// get_frame_delay 返回毫秒，转换为秒
-				float current_delay = gif->get_frame_delay(current_frame) / 1000.0f;
+				// get_frame_delay 返回秒
+				float current_delay = gif->get_frame_delay(current_frame);
 				if (current_delay <= 0.0f) current_delay = 0.1f;
 
 				while (time_accumulator >= current_delay) {
 					time_accumulator -= current_delay;
 					_advance_frame();
 					if (!playing) break;
-					current_delay = gif->get_frame_delay(current_frame) / 1000.0f;
+					current_delay = gif->get_frame_delay(current_frame);
 					if (current_delay <= 0.0f) current_delay = 0.1f;
 				}
 			} break;

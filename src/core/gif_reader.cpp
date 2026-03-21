@@ -411,4 +411,66 @@ namespace godot {
 
 		return metadata;
 	}
+
+	GIFFrameRawData GIFReader::get_frame_raw_data(const int frame_index) const {
+		GIFFrameRawData data;
+		if (!file_type || frame_index < 0 || frame_index >= file_type->ImageCount) {
+			return data;
+		}
+
+		// 获取指定帧
+		SavedImage* saved_image = &file_type->SavedImages[frame_index];
+		GifImageDesc* img_desc = &saved_image->ImageDesc;
+
+		data.left = img_desc->Left;
+		data.top = img_desc->Top;
+		data.width = img_desc->Width;
+		data.height = img_desc->Height;
+
+		if (data.width <= 0 || data.height <= 0) {
+			return data;
+		}
+
+		// 获取调色板 (优先使用局部调色板，如果没有则使用全局调色板)
+		ColorMapObject* cmap = img_desc->ColorMap;
+		if (!cmap) cmap = file_type->SColorMap;
+
+		if (cmap && cmap->ColorCount > 0 && cmap->Colors) {
+			// 确保颜色数量在有效范围内 (GIF 调色板最多 256 色)
+			int color_count = cmap->ColorCount;
+			if (color_count > 256) color_count = 256;
+			
+			data.color_count = color_count;
+			data.palette.resize(color_count);
+			for (int i = 0; i < color_count; i++) {
+				GifColorType color = cmap->Colors[i];
+				data.palette[i] = Color(color.Red / 255.0f, color.Green / 255.0f, color.Blue / 255.0f, 1.0f);
+			}
+		} else {
+			// 如果没有调色板，设置一个默认的灰度调色板
+			data.color_count = 256;
+			data.palette.resize(256);
+			for (int i = 0; i < 256; i++) {
+				float gray = i / 255.0f;
+				data.palette[i] = Color(gray, gray, gray, 1.0f);
+			}
+		}
+
+		// 获取 Graphics Control Block
+		GraphicsControlBlock gcb;
+		if (DGifSavedExtensionToGCB(file_type, frame_index, &gcb) == GIF_OK) {
+			data.transparent_color = gcb.TransparentColor;
+			data.disposal_method = static_cast<GifDisposalMethod>(gcb.DisposalMode);
+			data.delay_ms = gcb.DelayTime * 10;
+		}
+
+		// 复制像素索引数据
+		if (saved_image->RasterBits) {
+			int pixel_count = data.width * data.height;
+			data.pixel_indices.resize(pixel_count);
+			memcpy(data.pixel_indices.ptrw(), saved_image->RasterBits, pixel_count);
+		}
+
+		return data;
+	}
 }

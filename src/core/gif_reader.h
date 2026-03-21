@@ -8,6 +8,28 @@
 namespace godot {
 	class Image;
 
+	// 处置方式（定义在结构体之前）
+	enum GifDisposalMethod {
+		GIF_DISPOSAL_UNSPECIFIED = 0,									// 未指定
+		GIF_DISPOSAL_DO_NOT = 1,										// 不处置，保留当前帧
+		GIF_DISPOSAL_BACKGROUND = 2,									// 恢复到背景色
+		GIF_DISPOSAL_PREVIOUS = 3										// 恢复到前一帧
+	};
+
+	// 帧原始数据，用于外部合成
+	struct GIFFrameRawData {
+		int left = 0;
+		int top = 0;
+		int width = 0;
+		int height = 0;
+		PackedByteArray pixel_indices;									// 8-bit 调色板索引
+		int color_count = 0;											// 调色板颜色数
+		PackedColorArray palette;										// 调色板颜色 (RGBA)
+		int transparent_color = -1;										// 透明色索引，-1 表示无
+		GifDisposalMethod disposal_method = GIF_DISPOSAL_UNSPECIFIED;
+		int delay_ms = 0;
+	};
+
 	class GIFReader : public RefCounted {
 		GDCLASS(GIFReader, RefCounted)
 
@@ -33,12 +55,12 @@ namespace godot {
 			EOF_TOO_SOON = 113											// 检测到图像 EOF
 		};
 
-		// 处置方式
+		// 处置方式（保持向后兼容）
 		enum DisposalMethod {
-			DISPOSAL_METHOD_UNSPECIFIED = 0,							// 未指定
-			DISPOSAL_METHOD_DO_NOT = 1,									// 不处置，保留当前帧
-			DISPOSAL_METHOD_BACKGROUND = 2,								// 恢复到背景色
-			DISPOSAL_METHOD_PREVIOUS = 3								// 恢复到前一帧
+			DISPOSAL_METHOD_UNSPECIFIED = GIF_DISPOSAL_UNSPECIFIED,
+			DISPOSAL_METHOD_DO_NOT = GIF_DISPOSAL_DO_NOT,
+			DISPOSAL_METHOD_BACKGROUND = GIF_DISPOSAL_BACKGROUND,
+			DISPOSAL_METHOD_PREVIOUS = GIF_DISPOSAL_PREVIOUS
 		};
 
 	private:
@@ -78,6 +100,9 @@ namespace godot {
 		PackedStringArray get_comments() const;							// 获取所有注释文本
 		Dictionary get_frame_gcb(const int frame_index) const;			// 获取帧的图形控制块原始数据
 		Dictionary get_global_metadata() const;							// 获取全局元数据
+
+		// 获取帧原始数据 (用于合成)
+		GIFFrameRawData get_frame_raw_data(const int frame_index) const;// 获取帧原始数据（包含调色板索引）
 	};
 }
 

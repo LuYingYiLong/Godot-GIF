@@ -54,8 +54,8 @@ namespace godot {
 		Ref<ImageTexture> get_current_texture() const;					// 获取当前帧纹理
 
 		// 帧元数据
-		float get_frame_delay(int p_frame) const;						// 获取帧延迟（秒）
-		float get_total_duration() const;								// 获取总时长（秒）
+		float get_frame_delay(int p_frame) const;						// 获取帧延迟 (sec)
+		float get_total_duration() const;								// 获取总时长 (sec)
 
 		// 全局属性
 		int get_loop_count() const;										// GIF 本身循环次数 (0=无限)

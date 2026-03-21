@@ -260,8 +260,8 @@ namespace godot {
 
 	GIFWriter::GIFError GIFWriter::set_frame_delay(int p_delay_ms) {
 		if (!file_type) return NO_FILE_OPEN;
-		// GIF 延迟单位是 1/100 秒，转换毫秒
-		frame_delay = CLAMP(p_delay_ms / 10, 0, 65535);
+		// GIF 延迟单位是 1/100 秒，转换毫秒（四舍五入）
+		frame_delay = CLAMP((p_delay_ms + 5) / 10, 0, 65535);
 		return SUCCEEDED;
 	}
 
@@ -415,8 +415,8 @@ namespace godot {
 						}
 					}
 				} else {
-					// 无调色板，使用灰度
-					best_index = (r + g + b) / 3 / 3;
+					// 无调色板，使用灰度（映射到 0-255）
+					best_index = (r + g + b) / 3;
 				}
 				
 				indices[y * img_width + x] = best_index;

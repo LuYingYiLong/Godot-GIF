@@ -2,6 +2,7 @@
 
 #include <godot_cpp/core/error_macros.hpp>
 #include <godot_cpp/classes/file_access.hpp>
+#include <godot_cpp/classes/image.hpp>
 
 namespace godot {
 	void GIFTexture::_bind_methods() {
@@ -91,14 +92,104 @@ namespace godot {
 
 		size = reader->get_size();
 		loop_count = reader->get_loop_count();
-		TypedArray<Image> images = reader->get_saved_images();
-		frame_count = images.size();
-		for (int i = 0; i < images.size(); i++) {
-			Ref<Image> img = images[i];
-			Ref<ImageTexture> image_texture = ImageTexture::create_from_image(img);
-			frames.append(image_texture);
-			float delay = reader->get_frame_delay(i);
-			frame_delays.append(delay);
+		frame_count = reader->get_image_count();
+
+		if (frame_count == 0) {
+			return;
+		}
+
+		int64_t canvas_width = size.x;
+		int64_t canvas_height = size.y;
+
+		// 创建画布 (前一帧备份用于 DISPOSAL_METHOD_PREVIOUS)
+		PackedByteArray canvas;
+		canvas.resize(canvas_width * canvas_height * 4);
+		PackedByteArray previous_canvas;
+		previous_canvas.resize(canvas_width * canvas_height * 4);
+
+		// 初始化画布为全透明
+		memset(canvas.ptrw(), 0, canvas.size());
+
+		for (int frame_idx = 0; frame_idx < frame_count; frame_idx++) {
+			GIFFrameRawData frame_data = reader->get_frame_raw_data(frame_idx);
+
+			if (frame_data.width <= 0 || frame_data.height <= 0) {
+				// 空帧，保存当前画布
+				Ref<Image> img = Image::create_from_data(canvas_width, canvas_height, false, Image::FORMAT_RGBA8, canvas);
+				Ref<ImageTexture> tex = ImageTexture::create_from_image(img);
+				frames.append(tex);
+				frame_delays.append(frame_data.delay_ms / 1000.0f);
+				continue;
+			}
+
+			// 只有在需要恢复到前一帧时才备份
+			// 注意: 备份的是绘制当前帧之前的画布状态
+			if (frame_data.disposal_method == GIF_DISPOSAL_PREVIOUS) {
+				memcpy(previous_canvas.ptrw(), canvas.ptr(), canvas.size());
+			}
+
+			// 获取指针以提高性能
+			uint8_t* canvas_ptr = canvas.ptrw();
+			const uint8_t* raster_ptr = frame_data.pixel_indices.ptr();
+			const Color* palette_ptr = frame_data.palette.ptr();
+
+			// 将当前帧绘制到画布
+			for (int y = 0; y < frame_data.height; y++) {
+				int canvas_y = frame_data.top + y;
+				if (canvas_y < 0 || canvas_y >= canvas_height) continue;
+
+				for (int x = 0; x < frame_data.width; x++) {
+					int canvas_x = frame_data.left + x;
+					if (canvas_x < 0 || canvas_x >= canvas_width) continue;
+
+					int raster_idx = y * frame_data.width + x;
+					int color_idx = raster_ptr[raster_idx];
+
+					// 透明色：保持画布原样 (跳过)
+					// 透明色的含义是 "这个位置不要动"，而不是 "设为透明"
+					if (color_idx == frame_data.transparent_color) {
+						continue;
+					}
+
+					// 安全检查：颜色索引必须在有效范围内
+					if (color_idx >= 0 && color_idx < frame_data.color_count && color_idx < frame_data.palette.size()) {
+						int canvas_idx = (canvas_y * canvas_width + canvas_x) * 4;
+						const Color& c = palette_ptr[color_idx];
+						canvas_ptr[canvas_idx + 0] = (uint8_t)(c.r * 255);
+						canvas_ptr[canvas_idx + 1] = (uint8_t)(c.g * 255);
+						canvas_ptr[canvas_idx + 2] = (uint8_t)(c.b * 255);
+						canvas_ptr[canvas_idx + 3] = 255;			// 不透明
+					}
+				}
+			}
+
+			// 保存当前合成帧
+			Ref<Image> img = Image::create_from_data(canvas_width, canvas_height, false, Image::FORMAT_RGBA8, canvas);
+			Ref<ImageTexture> tex = ImageTexture::create_from_image(img);
+			frames.append(tex);
+			frame_delays.append(frame_data.delay_ms / 1000.0f);
+
+			// 根据处置方式为下一帧准备画布
+			if (frame_data.disposal_method == GIF_DISPOSAL_BACKGROUND) {
+				// 将当前帧占据的矩形区域清除为透明 (不是背景色！)
+				for (int y = 0; y < frame_data.height; y++) {
+					int cy = frame_data.top + y;
+					if (cy < 0 || cy >= canvas_height) continue;
+					for (int x = 0; x < frame_data.width; x++) {
+						int cx = frame_data.left + x;
+						if (cx < 0 || cx >= canvas_width) continue;
+						int idx = (cy * canvas_width + cx) * 4;
+						canvas_ptr[idx + 0] = 0;
+						canvas_ptr[idx + 1] = 0;
+						canvas_ptr[idx + 2] = 0;
+						canvas_ptr[idx + 3] = 0;
+					}
+				}
+			} else if (frame_data.disposal_method == GIF_DISPOSAL_PREVIOUS) {
+				// 恢复到绘制当前帧之前的状态
+				memcpy(canvas.ptrw(), previous_canvas.ptr(), canvas.size());
+			}
+			// DISPOSAL_METHOD_DO_NOT / UNSPECIFIED: 保持画布不变
 		}
 	}
 
