@@ -5,14 +5,12 @@
 <h1 align="center">Godot-GIF</h1>
 
 <p align="center">
-  A lightweight GIF parser and writer for Godot Engine
+  A lightweight GIF reader and writer for Godot Engine
 </p>
 
 ## Overview
 
 Godot-GIF is a GDExtension plugin for Godot Engine 4.x that provides GIF reading and writing capabilities. It wraps giflib 5.2.2 to enable importing, exporting, and playing GIF files in Godot projects.
-
-Target Godot version: 4.1+
 
 ## Features
 
@@ -61,7 +59,7 @@ Requires Python 3.8+, SCons 4.0+, and a C++20 compatible compiler.
 
 MIT License. See LICENSE.txt for details.
 
-Includes giflib 5.2.2 (MIT License) and godot-cpp (MIT License).
+Includes giflib 5.2.2 (MIT License)
 
 </content>
 </invoke>
