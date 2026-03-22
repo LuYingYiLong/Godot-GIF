@@ -29,7 +29,11 @@ giflib_sources = [
     "src/thirdparty/giflib-5.2.2/quantize.c",               # 颜色量化
     "src/thirdparty/giflib-5.2.2/openbsd-reallocarray.c",   # 兼容层
 ]
-sources += [env.Object(f) for f in giflib_sources]
+# Use SharedObject for Android compatibility with shared libraries
+if env["platform"] == "android":
+    sources += [env.SharedObject(f) for f in giflib_sources]
+else:
+    sources += [env.Object(f) for f in giflib_sources]
 
 if env["target"] in ["editor", "template_debug"]:
     try:
@@ -56,6 +60,13 @@ elif env["platform"] == "ios":
             "addons/godot_gif/bin/libgodot_gif.{}.{}.a".format(env["platform"], env["target"]),
             source=sources,
         )
+
+elif env["platform"] == "android":
+    library = env.SharedLibrary(
+        "addons/godot_gif/bin/libgodot_gif{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        source=sources,
+    )
+
 else:
     library = env.SharedLibrary(
         "addons/godot_gif/bin/godot_gif{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
