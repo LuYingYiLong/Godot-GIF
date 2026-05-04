@@ -125,4 +125,4 @@ jobs:
         with:
           name: godot-gif
           pattern: godot-gif-*
-          delete-merged: true
+          delete-merged: false
