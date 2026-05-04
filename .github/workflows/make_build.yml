@@ -1,0 +1,128 @@
+# For syntax, see https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+# This workflow is triggered manually on the "Actions" tab on GitHub, and can be used to create releases.
+
+name: Make Godot-GIF GDExtension builds
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        # A build is made for every possible combination of parameters
+        # You can add or remove entries from the arrays of each parameter to customize which builds you want to run.
+        # See https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/running-variations-of-jobs-in-a-workflow
+        target:
+          [
+            { platform: linux, arch: x86_64, os: ubuntu-22.04 },
+            { platform: linux, arch: x86_32, os: ubuntu-22.04 },
+            { platform: linux, arch: arm64, os: ubuntu-22.04-arm },
+            { platform: linux, arch: arm32, os: ubuntu-22.04-arm },
+            { platform: windows, arch: x86_64, os: windows-latest },
+            { platform: windows, arch: x86_32, os: windows-latest },
+            { platform: windows, arch: arm64, os: windows-latest },
+            { platform: macos, arch: universal, os: macos-latest },
+            { platform: android, arch: x86_64, os: ubuntu-22.04 },
+            { platform: android, arch: x86_32, os: ubuntu-22.04 },
+            { platform: android, arch: arm64, os: ubuntu-22.04 },
+            { platform: android, arch: arm32, os: ubuntu-22.04 },
+            { platform: ios, arch: arm64, os: macos-latest },
+            { platform: web, arch: wasm32, os: ubuntu-22.04 },
+          ]
+        target-type: [template_debug, template_release]
+        float-precision: [single]
+
+    runs-on: ${{ matrix.target.os }}
+    steps:
+      # Clone this repository
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Add linux x86_32 toolchain
+      - name: Install multilib support
+        if: ${{ matrix.target.platform == 'linux' && matrix.target.arch == 'x86_32' }}
+        run: |
+          sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
+
+      # Setup dependencies
+      - name: Setup godot-cpp
+        uses: ./godot-cpp/.github/actions/setup-godot-cpp
+        with:
+          platform: ${{ matrix.target.platform }}
+          em-version: 3.1.62
+
+      # Remove committed/pre-existing binaries so each matrix artifact only contains its own build output.
+      - name: Clean bundled binary outputs
+        shell: pwsh
+        run: |
+          $binary_patterns = @("*.dll", "*.so", "*.a", "*.wasm", "*.lib", "*.exp", "*.pdb")
+          foreach ($pattern in $binary_patterns) {
+            Get-ChildItem addons/godot_gif/bin -File -Filter $pattern | Remove-Item -Force
+          }
+          Get-ChildItem addons/godot_gif/bin -Directory -Filter "*.framework" | Remove-Item -Recurse -Force
+
+      # Build GDExtension (with caches)
+
+      - name: Restore .scons_cache
+        uses: ./godot-cpp/.github/actions/godot-cache-restore
+        with:
+          scons-cache: ${{ github.workspace }}/.scons-cache/
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+
+      - name: Build Godot-GIF GDExtension
+        shell: sh
+        env:
+          SCONS_CACHE: ${{ github.workspace }}/.scons-cache/
+        run: |
+          scons target=${{ matrix.target-type }} platform=${{ matrix.target.platform }} arch=${{ matrix.target.arch }} precision=${{ matrix.float-precision }}
+
+      - name: Save .scons_cache
+        uses: ./godot-cpp/.github/actions/godot-cache-save
+        with:
+          scons-cache: ${{ github.workspace }}/.scons-cache/
+          cache-name: ${{ matrix.target.platform }}_${{ matrix.target.arch }}_${{ matrix.float-precision }}_${{ matrix.target-type }}
+
+      # Clean up compilation files
+      - name: Windows - Delete compilation files
+        if: ${{ matrix.target.platform == 'windows' }}
+        shell: pwsh
+        run: |
+          Remove-Item addons/godot_gif/bin/* -Include *.exp,*.lib,*.pdb -Force
+
+      # Upload the build
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-gif-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
+          if-no-files-found: error
+          path: |
+            ${{ github.workspace }}/addons/godot_gif/bin/*${{ matrix.target.platform }}*${{ matrix.target-type }}*
+            ${{ github.workspace }}/addons/godot_gif/bin/*${{ matrix.target.platform }}*${{ matrix.target-type }}*/**
+
+      # Upload addon metadata once so the merged artifact can be copied directly as an addon.
+      - name: Upload Addon Files Artifact
+        if: ${{ matrix.target.platform == 'linux' && matrix.target.arch == 'x86_64' && matrix.target-type == 'template_debug' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: godot-gif-addon-files
+          path: |
+            ${{ github.workspace }}/addons/godot_gif/plugin.cfg
+            ${{ github.workspace }}/addons/godot_gif/godot_gif.gd
+            ${{ github.workspace }}/addons/godot_gif/bin/godot_gif.gdextension
+            ${{ github.workspace }}/addons/godot_gif/bin/icons/**
+
+  # Merges all the build artifacts together into a single Godot-GIF artifact.
+  # If you comment out this step, all the builds will be uploaded individually.
+  merge:
+    runs-on: ubuntu-22.04
+    needs: build
+    steps:
+      - name: Merge Artifacts
+        uses: actions/upload-artifact/merge@v4
+        with:
+          name: godot-gif
+          pattern: godot-gif-*
+          delete-merged: true
