@@ -29,11 +29,12 @@ giflib_sources = [
     "src/thirdparty/giflib-5.2.2/quantize.c",               # 颜色量化
     "src/thirdparty/giflib-5.2.2/openbsd-reallocarray.c",   # 兼容层
 ]
-# Use SharedObject for Android compatibility with shared libraries
-if env["platform"] == "android":
-    sources += [env.SharedObject(f) for f in giflib_sources]
-else:
+# Shared library targets need shared/PIC-compatible objects on Unix-like platforms.
+# iOS is built as a static library below, so regular objects are correct there.
+if env["platform"] == "ios":
     sources += [env.Object(f) for f in giflib_sources]
+else:
+    sources += [env.SharedObject(f) for f in giflib_sources]
 
 if env["target"] in ["editor", "template_debug"]:
     try:
