@@ -6,10 +6,34 @@ reloadable = true
 
 [libraries]
 
+linux.debug.x86_64 = "libgodot_gif.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "libgodot_gif.linux.template_release.x86_64.so"
+linux.debug.x86_32 = "libgodot_gif.linux.template_debug.x86_32.so"
+linux.release.x86_32 = "libgodot_gif.linux.template_release.x86_32.so"
+linux.debug.arm64 = "libgodot_gif.linux.template_debug.arm64.so"
+linux.release.arm64 = "libgodot_gif.linux.template_release.arm64.so"
+linux.debug.arm32 = "libgodot_gif.linux.template_debug.arm32.so"
+linux.release.arm32 = "libgodot_gif.linux.template_release.arm32.so"
 windows.debug.x86_64 = "godot_gif.windows.template_debug.x86_64.dll"
 windows.release.x86_64 = "godot_gif.windows.template_release.x86_64.dll"
+windows.debug.x86_32 = "godot_gif.windows.template_debug.x86_32.dll"
+windows.release.x86_32 = "godot_gif.windows.template_release.x86_32.dll"
+windows.debug.arm64 = "godot_gif.windows.template_debug.arm64.dll"
+windows.release.arm64 = "godot_gif.windows.template_release.arm64.dll"
+macos.debug = "libgodot_gif.macos.template_debug.framework"
+macos.release = "libgodot_gif.macos.template_release.framework"
 android.debug.arm64 = "libgodot_gif.android.template_debug.arm64.so"
 android.release.arm64 = "libgodot_gif.android.template_release.arm64.so"
+android.debug.arm32 = "libgodot_gif.android.template_debug.arm32.so"
+android.release.arm32 = "libgodot_gif.android.template_release.arm32.so"
+android.debug.x86_64 = "libgodot_gif.android.template_debug.x86_64.so"
+android.release.x86_64 = "libgodot_gif.android.template_release.x86_64.so"
+android.debug.x86_32 = "libgodot_gif.android.template_debug.x86_32.so"
+android.release.x86_32 = "libgodot_gif.android.template_release.x86_32.so"
+ios.debug = "libgodot_gif.ios.template_debug.a"
+ios.release = "libgodot_gif.ios.template_release.a"
+web.debug.wasm32 = "libgodot_gif.web.template_debug.wasm32.wasm"
+web.release.wasm32 = "libgodot_gif.web.template_release.wasm32.wasm"
 
 [icons]
 

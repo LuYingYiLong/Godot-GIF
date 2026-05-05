@@ -92,6 +92,27 @@ jobs:
         run: |
           Remove-Item addons/godot_gif/bin/* -Include *.exp,*.lib,*.pdb -Force
 
+      # Keep binaries under bin/ in the uploaded artifact.
+      - name: Stage Build Artifact
+        shell: pwsh
+        run: |
+          $stage = Join-Path $env:GITHUB_WORKSPACE "artifact"
+          if (Test-Path $stage) {
+            Remove-Item $stage -Recurse -Force
+          }
+
+          $stage_bin = Join-Path $stage "bin"
+          New-Item -ItemType Directory -Force -Path $stage_bin | Out-Null
+
+          $build_outputs = @(Get-ChildItem addons/godot_gif/bin | Where-Object { $_.Name -like "*${{ matrix.target.platform }}*${{ matrix.target-type }}*" })
+          if ($build_outputs.Count -eq 0) {
+            throw "No build outputs found for ${{ matrix.target.platform }} ${{ matrix.target.arch }} ${{ matrix.target-type }}"
+          }
+
+          foreach ($item in $build_outputs) {
+            Copy-Item -LiteralPath $item.FullName -Destination $stage_bin -Recurse -Force
+          }
+
       # Upload the build
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
@@ -99,8 +120,7 @@ jobs:
           name: godot-gif-${{ matrix.target.platform }}-${{ matrix.target.arch }}-${{ matrix.float-precision }}-${{ matrix.target-type }}
           if-no-files-found: error
           path: |
-            ${{ github.workspace }}/addons/godot_gif/bin/*${{ matrix.target.platform }}*${{ matrix.target-type }}*
-            ${{ github.workspace }}/addons/godot_gif/bin/*${{ matrix.target.platform }}*${{ matrix.target-type }}*/**
+            ${{ github.workspace }}/artifact/**
 
       # Upload addon metadata once so the merged artifact can be copied directly as an addon.
       - name: Upload Addon Files Artifact
