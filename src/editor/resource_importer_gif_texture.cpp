@@ -63,7 +63,7 @@ namespace godot {
 	}
 
 	int32_t ResourceImporterGIFTexture::_get_format_version() const {
-		return 1;
+		return 2;
 	}
 
 	bool ResourceImporterGIFTexture::_get_option_visibility(const String& p_path, const StringName& p_option_name, const Dictionary& p_options) const {
@@ -92,13 +92,29 @@ namespace godot {
 			return ERR_FILE_CORRUPT;
 		}
 
+		Ref<GIFReader> reader;
+		reader.instantiate();
+		GIFReader::GIFError gif_err = reader->open_from_buffer(gif_data);
+		if (gif_err != GIFReader::SUCCEEDED) {
+			ERR_PRINT("Failed to parse GIF metadata: " + p_source_file + ", error: " + String::num_int64(gif_err));
+			return ERR_FILE_CORRUPT;
+		}
+
+		int frame_count = reader->get_image_count();
+		PackedFloat32Array frame_delays;
+		frame_delays.resize(frame_count);
+		for (int frame_idx = 0; frame_idx < frame_count; frame_idx++) {
+			frame_delays[frame_idx] = reader->get_frame_delay(frame_idx) / 1000.0f;
+		}
+
 		// 创建 GIFTexture 资源
 		Ref<GIFTexture> gif_texture;
 		gif_texture.instantiate();
 		
-		// 通过 set_data 加载 GIF 数据
-		// set_data 会自动调用 load_from_data 解析 GIF
+		// 保存原始 GIF 数据和导入阶段解析出的元数据。
+		// 帧图像会在运行时按需解码，避免场景加载时一次性合成所有帧。
 		gif_texture->set_data(gif_data);
+		gif_texture->set_metadata(reader->get_size(), frame_count, frame_delays, reader->get_loop_count());
 
 		// 保存资源
 		String save_path = p_save_path + String(".") + _get_save_extension();

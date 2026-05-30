@@ -13,18 +13,30 @@ namespace godot {
 	private:
 		// GIF 原始数据
 		PackedByteArray gif_data;
-		Size2i size;
+		mutable Size2i size;
 
 		// 帧数据
-		TypedArray<ImageTexture> frames;								// 所有帧纹理
-		PackedFloat32Array frame_delays;								// 每帧延迟（秒）
+		mutable TypedArray<ImageTexture> frames;						// 按需解码后的帧纹理
+		mutable PackedFloat32Array frame_delays;						// 每帧延迟（秒）
 
 		// 当前显示
 		int current_frame = 0;
-		int frame_count = 0;
+		mutable int frame_count = 0;
 
 		// 全局属性（来自 GIF 文件）
-		int loop_count = 0;
+		mutable int loop_count = 0;
+
+		// 按需解码状态
+		mutable Ref<GIFReader> lazy_reader;
+		mutable PackedByteArray canvas;
+		mutable PackedByteArray previous_canvas;
+		mutable int decoded_frame_count = 0;
+
+		void _reset_runtime_cache() const;
+		bool _ensure_metadata() const;
+		bool _ensure_decoder() const;
+		bool _ensure_frame_decoded(int p_frame) const;
+		void _decode_frame_to_cache(int p_frame) const;
 
 	protected:
 		static void _bind_methods();
@@ -40,6 +52,16 @@ namespace godot {
 
 		void set_data(const PackedByteArray& p_data);
 		PackedByteArray get_data() const;
+
+		void set_metadata_size(const Vector2i& p_size);
+		Vector2i get_metadata_size() const;
+		void set_metadata_frame_count(int p_frame_count);
+		int get_metadata_frame_count() const;
+		void set_metadata_frame_delays(const PackedFloat32Array& p_frame_delays);
+		PackedFloat32Array get_metadata_frame_delays() const;
+		void set_metadata_loop_count(int p_loop_count);
+		int get_metadata_loop_count() const;
+		void set_metadata(const Vector2i& p_size, int p_frame_count, const PackedFloat32Array& p_frame_delays, int p_loop_count);
 
 		// 加载
 		static Ref<GIFTexture> load_from_file(const String& p_path);

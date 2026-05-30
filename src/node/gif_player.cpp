@@ -382,7 +382,13 @@ namespace godot {
 	}
 
 	void GIFPlayer::set_expand_mode(ExpandMode p_mode) {
+		if (expand_mode == p_mode) {
+			return;
+		}
+
 		expand_mode = p_mode;
+		update_minimum_size();
+		queue_redraw();
 	}
 
 	GIFPlayer::ExpandMode GIFPlayer::get_expand_mode() const {
@@ -390,7 +396,12 @@ namespace godot {
 	}
 
 	void GIFPlayer::set_stretch_mode(StretchMode p_mode) {
+		if (stretch_mode == p_mode) {
+			return;
+		}
+
 		stretch_mode = p_mode;
+		update_minimum_size();
 		queue_redraw();
 	}
 
