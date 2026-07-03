@@ -1,5 +1,18 @@
 #include "gif_writer.h"
 
+extern "C" {
+int GifQuantizeBuffer(
+	unsigned int Width,
+	unsigned int Height,
+	int *ColorMapSize,
+	const GifByteType *RedInput,
+	const GifByteType *GreenInput,
+	const GifByteType *BlueInput,
+	GifByteType *OutputBuffer,
+	GifColorType *OutputColorMap
+);
+}
+
 namespace godot {
 	void GIFWriter::_bind_methods() {
 		BIND_ENUM_CONSTANT(SUCCEEDED);
@@ -33,9 +46,9 @@ namespace godot {
 		ClassDB::bind_method(D_METHOD("write_frame_image", "image", "quantize"), &GIFWriter::write_frame_image, DEFVAL(true));
 		ClassDB::bind_method(D_METHOD("end_frame"), &GIFWriter::end_frame);
 
-		ClassDB::bind_method(D_METHOD("write_gif", "images", "delays", "loop_count", "quantize"), &GIFWriter::write_gif, DEFVAL(true), DEFVAL(0));
-		ClassDB::bind_static_method("GIFWriter", D_METHOD("save_to_file", "path", "images", "delays", "loop_count", "quantize"), &GIFWriter::save_to_file, DEFVAL(true), DEFVAL(0));
-		ClassDB::bind_static_method("GIFWriter", D_METHOD("save_to_buffer", "images", "delays", "loop_count", "quantize"), &GIFWriter::save_to_buffer, DEFVAL(true), DEFVAL(0));
+		ClassDB::bind_method(D_METHOD("write_gif", "images", "delays", "loop_count", "quantize"), &GIFWriter::write_gif, DEFVAL(0), DEFVAL(true));
+		ClassDB::bind_static_method("GIFWriter", D_METHOD("save_to_file", "path", "images", "delays", "loop_count", "quantize"), &GIFWriter::save_to_file, DEFVAL(0), DEFVAL(true));
+		ClassDB::bind_static_method("GIFWriter", D_METHOD("save_to_buffer", "images", "delays", "loop_count", "quantize"), &GIFWriter::save_to_buffer, DEFVAL(0), DEFVAL(true));
 		
 		ClassDB::bind_method(D_METHOD("add_comment", "comment"), &GIFWriter::add_comment);
 
@@ -378,29 +391,86 @@ namespace godot {
 			img_rgb->convert(Image::FORMAT_RGB8);
 		}
 
+		const int pixel_count = img_width * img_height;
 		PackedByteArray indices;
-		indices.resize(img_width * img_height);
+		indices.resize(pixel_count);
 
-		// 如果没有调色板，创建一个默认的灰度调色板作为局部调色板
-		if (!frame_color_map && !file_type->SColorMap) {
+		PackedByteArray pixels = img_rgb->get_data();
+		int bpp = img_rgb->get_format() == Image::FORMAT_RGBA8 ? 4 : 3;
+
+		// 获取使用的调色板
+		ColorMapObject *cmap = frame_color_map ? frame_color_map : file_type->SColorMap;
+		int color_count = cmap ? cmap->ColorCount : 256;
+
+		if (p_quantize && !cmap) {
+			PackedByteArray red;
+			PackedByteArray green;
+			PackedByteArray blue;
+			red.resize(pixel_count);
+			green.resize(pixel_count);
+			blue.resize(pixel_count);
+
+			const uint8_t *pixels_ptr = pixels.ptr();
+			uint8_t *red_ptr = red.ptrw();
+			uint8_t *green_ptr = green.ptrw();
+			uint8_t *blue_ptr = blue.ptrw();
+
+			for (int i = 0; i < pixel_count; i++) {
+				const int pixel_offset = i * bpp;
+				red_ptr[i] = pixels_ptr[pixel_offset];
+				green_ptr[i] = pixels_ptr[pixel_offset + 1];
+				blue_ptr[i] = pixels_ptr[pixel_offset + 2];
+			}
+
+			GifColorType output_color_map[256] = {};
+			int color_map_size = 256;
+			if (GifQuantizeBuffer(
+					img_width,
+					img_height,
+					&color_map_size,
+					red.ptr(),
+					green.ptr(),
+					blue.ptr(),
+					indices.ptrw(),
+					output_color_map
+				) == GIF_ERROR) {
+				return WRITER_FAILED;
+			}
+
+			const int rounded_color_count = 1 << GifBitSize(color_map_size);
+			frame_color_map = GifMakeMapObject(rounded_color_count, nullptr);
+			if (!frame_color_map) {
+				return NOT_ENOUGH_MEM;
+			}
+
+			for (int i = 0; i < color_map_size; i++) {
+				frame_color_map->Colors[i] = output_color_map[i];
+			}
+
+			frame_width = img_width;
+			frame_height = img_height;
+			return write_frame_pixels(indices);
+		}
+
+		// 如果显式关闭量化且没有调色板，则保留旧行为：使用灰度局部调色板。
+		if (!cmap) {
 			PackedColorArray default_palette;
 			default_palette.resize(256);
 			for (int i = 0; i < 256; i++) {
-				float g = i / 255.0f;
-				default_palette[i] = Color(g, g, g);
+				float gray = i / 255.0f;
+				default_palette[i] = Color(gray, gray, gray);
 			}
-			GIFError err = set_frame_palette(default_palette);
-			if (err != SUCCEEDED) return err;
-		}
 
+			GIFError err = set_frame_palette(default_palette);
+			if (err != SUCCEEDED) {
+				return err;
+			}
+
+			cmap = frame_color_map;
+			color_count = cmap ? cmap->ColorCount : 256;
+		}
+		
 		// 将图像数据映射到调色板索引
-		PackedByteArray pixels = img_rgb->get_data();
-		int bpp = img_rgb->get_format() == Image::FORMAT_RGBA8 ? 4 : 3;
-		
-		// 获取使用的调色板
-		ColorMapObject* cmap = frame_color_map ? frame_color_map : file_type->SColorMap;
-		int color_count = cmap ? cmap->ColorCount : 256;
-		
 		for (int y = 0; y < img_height; y++) {
 			for (int x = 0; x < img_width; x++) {
 				int idx = (y * img_width + x) * bpp;
